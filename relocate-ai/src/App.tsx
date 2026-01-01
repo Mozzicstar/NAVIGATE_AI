@@ -1,12 +1,141 @@
-import React, { useState, useRef, useEffect } from 'react';
+ import React, { useState, useRef, useEffect } from 'react';
 import { Send, CheckCircle2, Circle, AlertTriangle, Info, Plane, MapPin, Calendar, Target, Home, ChevronDown, ChevronUp, Loader2, User, Briefcase, GraduationCap, Heart, Globe, DollarSign, Shield, Clock, FileText, Camera, Navigation, Train, Building2, Phone, Wifi, CreditCard, Hospital, Scale, Users, TrendingUp, Download, Share2, Bell, X, Menu, ChevronRight, Zap, Star, Award } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const RelocateAI = () => {
-  const [step, setStep] = useState('landing');
-  const [userContext, setUserContext] = useState({
+type Purpose = 'tourism' | 'work' | 'education' | 'health' | 'relocation';
+type Destination = 'UAE' | 'USA';
+type Step = 'landing' | 'purpose' | 'form' | 'checklist';
+type PriorityLevel = 'critical' | 'high' | 'medium' | 'low';
+type SelectedCategory = 'all' | PriorityLevel;
+type ActiveTab = 'checklist' | 'overview' | 'chat';
+type NotificationType = 'info' | 'success' | 'warning';
+type ChatRole = 'user' | 'assistant';
+
+type VisaRequirements = {
+  source: string;
+  content: string;
+  confidence: string;
+  url?: string;
+  lastUpdated?: string;
+};
+
+type AirportProcedures = {
+  source: string;
+  content: string;
+  confidence: string;
+  scam_warning?: string;
+};
+
+type TransportInfo = {
+  source: string;
+  content: string;
+  confidence: string;
+};
+
+type Costs = {
+  accommodation: { budget: string; mid: string; luxury: string };
+  food: { budget: string; mid: string; luxury: string };
+  transport: { monthly_pass: string; taxi_avg?: string; uber_avg?: string };
+  total_estimate: { budget: string; mid: string; luxury: string };
+};
+
+type GeneralInfo = {
+  source: string;
+  content: string;
+  confidence: string;
+};
+
+type RiskFactors = {
+  scam_risk: string;
+  legal_risk: string;
+  health_risk: string;
+  transport_risk: string;
+  overall: string;
+};
+
+type KnowledgeBaseEntry = {
+  visa_requirements: VisaRequirements;
+  airport_procedures: AirportProcedures;
+  transport: TransportInfo;
+  costs: Costs;
+  first_72_hours: GeneralInfo;
+  legal_cultural: GeneralInfo;
+  risk_factors: RiskFactors;
+};
+
+type KnowledgeBase = Record<Destination, KnowledgeBaseEntry>;
+
+type ChecklistItem = {
+  id: string;
+  title: string;
+  checked: boolean;
+  priority: PriorityLevel;
+  deadline: string;
+  source: string;
+  detail: string;
+  risk: string;
+  estimatedTime: string;
+  cost?: string;
+};
+
+type ChecklistCategory = {
+  id: number;
+  category: string;
+  icon: LucideIcon;
+  confidence: string;
+  priority: PriorityLevel;
+  items: ChecklistItem[];
+};
+
+type BudgetBreakdown = {
+  accommodation: { daily: string; total: string };
+  food: { daily: string; total: string };
+  transport: { description: string; total: string };
+  miscellaneous: { description: string; total: string };
+  total: string;
+};
+
+type RiskScore = {
+  overall: number;
+  breakdown: { scam: string; legal: string; health: string; transport: string };
+  level: 'Low' | 'Medium' | 'High' | string;
+  color: 'green' | 'yellow' | 'red';
+};
+
+type Notification = {
+  id: number;
+  message: string;
+  type: NotificationType;
+  timestamp: Date;
+};
+
+type ChatMessage = {
+  role: ChatRole;
+  content: string;
+  timestamp: Date;
+};
+
+type PurposeIcons = Record<Purpose, { icon: LucideIcon; label: string; color: string }>;
+
+type UserContext = {
+  origin: string;
+  destination: Destination | '';
+  purpose: Purpose;
+  departureDate: string;
+  travelIntent: string;
+  departureCity: string;
+  homeArea: string;
+  flightTime: string;
+  budget: string;
+  duration: string;
+};
+
+const RelocateAI: React.FC = () => {
+  const [step, setStep] = useState<Step>('landing');
+  const [userContext, setUserContext] = useState<UserContext>({
     origin: '',
     destination: '',
-    purpose: '',
+    purpose: 'tourism',
     departureDate: '',
     travelIntent: '',
     departureCity: '',
@@ -15,22 +144,22 @@ const RelocateAI = () => {
     budget: '',
     duration: ''
   });
-  const [checklist, setChecklist] = useState([]);
-  const [expandedItems, setExpandedItems] = useState({});
-  const [chatMessages, setChatMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('checklist');
-  const [showTimeline, setShowTimeline] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [budgetBreakdown, setBudgetBreakdown] = useState(null);
-  const [riskScore, setRiskScore] = useState(null);
-  const chatEndRef = useRef(null);
+  const [checklist, setChecklist] = useState<ChecklistCategory[]>([]);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('checklist');
+  const [showTimeline, setShowTimeline] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<SelectedCategory>('all');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [budgetBreakdown, setBudgetBreakdown] = useState<BudgetBreakdown | null>(null);
+  const [riskScore, setRiskScore] = useState<RiskScore | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // Enhanced knowledge base with more data
-  const knowledgeBase = {
+  const knowledgeBase: KnowledgeBase = {
     UAE: {
       visa_requirements: {
         source: "UAE Federal Authority for Identity and Citizenship",
@@ -118,7 +247,7 @@ const RelocateAI = () => {
     }
   };
 
-  const purposeIcons = {
+  const purposeIcons: PurposeIcons = {
     tourism: { icon: Camera, label: "Tourism & Leisure", color: "blue" },
     work: { icon: Briefcase, label: "Work & Employment", color: "purple" },
     education: { icon: GraduationCap, label: "Education & Study", color: "green" },
@@ -126,11 +255,14 @@ const RelocateAI = () => {
     relocation: { icon: Home, label: "Permanent Relocation", color: "orange" }
   };
 
-  const generateEnhancedChecklist = (destination, purpose = 'tourism') => {
+  const generateEnhancedChecklist = (
+    destination: Destination,
+    purpose: Purpose = 'tourism'
+  ): ChecklistCategory[] => {
     const kb = knowledgeBase[destination];
     if (!kb) return [];
 
-    const baseChecklist = [
+    const baseChecklist: ChecklistCategory[] = [
       {
         id: 1,
         category: "Travel Documents",
@@ -555,11 +687,11 @@ const RelocateAI = () => {
     return baseChecklist;
   };
 
-  const calculateRiskScore = (destination) => {
+  const calculateRiskScore = (destination: Destination): RiskScore | null => {
     const risks = knowledgeBase[destination]?.risk_factors;
     if (!risks) return null;
 
-    const scoreMap = { "Low": 1, "Low-Medium": 2, "Medium": 3, "Medium-High": 4, "High": 5 };
+    const scoreMap: Record<string, number> = { "Low": 1, "Low-Medium": 2, "Medium": 3, "Medium-High": 4, "High": 5 };
     const scores = [
       scoreMap[risks.scam_risk] || 3,
       scoreMap[risks.legal_risk] || 3,
@@ -583,7 +715,11 @@ const RelocateAI = () => {
     };
   };
 
-  const generateBudgetBreakdown = (destination, purpose, duration = '30') => {
+  const generateBudgetBreakdown = (
+    destination: Destination,
+    purpose: Purpose,
+    duration: string = '30'
+  ): BudgetBreakdown | null => {
     const kb = knowledgeBase[destination];
     if (!kb) return null;
 
@@ -611,8 +747,8 @@ const RelocateAI = () => {
     };
   };
 
-  const handleDestinationSelect = async (dest) => {
-    setUserContext({ ...userContext, destination: dest });
+  const handleDestinationSelect = async (dest: Destination): Promise<void> => {
+    setUserContext(prev => ({ ...prev, destination: dest }));
     setLoading(true);
     
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -637,15 +773,22 @@ const RelocateAI = () => {
       content: `🎯 Welcome! I've generated a comprehensive relocation plan for ${dest}.\n\n📊 Risk Assessment: ${risk?.level} (${risk?.overall}/100)\n💰 Estimated Budget: ${budget?.total}\n\n✅ ${newChecklist.reduce((acc, cat) => acc + cat.items.length, 0)} action items identified\n\nEach item is backed by official sources. Click any item for detailed information, risks, costs, and timelines. I'm here to answer any questions!`,
       timestamp: new Date()
     }]);
+      const welcomeMessage: ChatMessage = {
+        role: 'assistant',
+        content: `🎯 Welcome! I've generated a comprehensive relocation plan for ${dest}.\n\n📊 Risk Assessment: ${risk?.level} (${risk?.overall}/100)\n💰 Estimated Budget: ${budget?.total}\n\n✅ ${newChecklist.reduce((acc, cat) => acc + cat.items.length, 0)} action items identified\n\nEach item is backed by official sources. Click any item for detailed information, risks, costs, and timelines. I'm here to answer any questions!`,
+        timestamp: new Date()
+      };
+    
+      setChatMessages([welcomeMessage]);
   };
 
-  const handlePurposeSelect = (purpose) => {
-    setUserContext({ ...userContext, purpose });
+  const handlePurposeSelect = (purpose: Purpose): void => {
+    setUserContext(prev => ({ ...prev, purpose }));
     setStep('form');
   };
 
-  const addNotification = (message, type = "info") => {
-    const newNotif = {
+  const addNotification = (message: string, type: NotificationType = "info"): void => {
+    const newNotif: Notification = {
       id: Date.now(),
       message,
       type,
@@ -656,46 +799,37 @@ const RelocateAI = () => {
       setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
     }, 5000);
   };
+      // Add welcome notification
+      addNotification(`Checklist generated for ${dest}`, "success");
 
-  const toggleChecklistItem = (itemId) => {
-    setChecklist(prevChecklist => 
-      prevChecklist.map(category => ({
-        ...category,
-        items: category.items.map(item => {
-          if (item.id === itemId) {
-            const newChecked = !item.checked;
-            if (newChecked) {
-              addNotification(`✅ Completed: ${item.title}`, "success");
-            }
-            return { ...item, checked: newChecked };
-          }
-          return item;
-        })
-      }))
-    );
-  };
+      const welcomeMessage: ChatMessage = {
+        role: 'assistant',
+        content: `🎯 Welcome! I've generated a comprehensive relocation plan for ${dest}.
 
-  const toggleExpand = (itemId) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
-  };
+  📊 Risk Assessment: ${risk?.level} (${risk?.overall}/100)
+  💰 Estimated Budget: ${budget?.total}
 
-  const handleSendMessage = async () => {
+  ✅ ${newChecklist.reduce((acc, cat) => acc + cat.items.length, 0)} action items identified
+
+  Each item is backed by official sources. Click any item for detailed information, risks, costs, and timelines. I'm here to answer any questions!`,
+        timestamp: new Date()
+      };
+
+      setChatMessages([welcomeMessage]);
     if (!inputMessage.trim()) return;
 
-    const userMsg = {
+    const userMsg: ChatMessage = {
       role: 'user',
-      content: inputMessage,
+    
+    const welcomeMessage: ChatMessage = {
+      role: 'assistant',
+      content: `🎯 Welcome! I've generated a comprehensive relocation plan for ${dest}.\n\n📊 Risk Assessment: ${risk?.level} (${risk?.overall}/100)\n💰 Estimated Budget: ${budget?.total}\n\n✅ ${newChecklist.reduce((acc, cat) => acc + cat.items.length, 0)} action items identified\n\nEach item is backed by official sources. Click any item for detailed information, risks, costs, and timelines. I'm here to answer any questions!`,
       timestamp: new Date()
     };
 
-    setChatMessages(prev => [...prev, userMsg]);
-    setInputMessage('');
-    setLoading(true);
-
-    await new Promise(resolve => setTimeout(resolve, 1200));
+    setChatMessages([welcomeMessage]);
+      return;
+    }
 
     const kb = knowledgeBase[userContext.destination];
     let response = "";
@@ -713,49 +847,59 @@ const RelocateAI = () => {
     } else if (query.includes('transport') || query.includes('taxi') || query.includes('uber') || query.includes('metro')) {
       response = `🚗 **Transportation Options**\n\n${kb.transport.content}\n\n💡 **Pro Tips:**\n• Download transport apps before arrival\n• Have destination address in local language\n• Keep small bills for taxis\n• Metro/public transport cheapest option\n\n🟢 Source: ${kb.transport.source}`;
     } else if (query.includes('medication') || query.includes('medicine') || query.includes('drug')) {
-      response = `💊 **Critical Medication Information**\n\n⚠️ **Requirements:**\n1. ALL medications in original packaging\n2. Carry doctor's prescription letter\n3. Declare at customs\n4. Check banned substances list\n\n🚫 **Important**: Some medications legal in Nigeria are BANNED in ${userContext.destination}. Examples:\n${userContext.destination === 'UAE' ? '• Codeine-based medications\n• Certain pain relievers\n• CBD products' : '• Certain antibiotics\n• Traditional medicines\n• Unapproved supplements'}\n\n🟡 **Confidence**: Medium - I don't have the complete banned list.\n\n✅ **Action**: Verify with ${userContext.destination} Embassy BEFORE travel.\n\n**Risk if ignored**: Confiscation, prosecution, health crisis without medication.`;
-    } else if (query.includes('law') || query.includes('legal') || query.includes('culture') || query.includes('custom')) {
-      response = `⚖️ **Legal & Cultural Guidelines**\n\n${kb.legal_cultural.content}\n\n⚠️ **These laws are STRICTLY enforced**\n\nPenalties can include:\n• Heavy fines\n• Imprisonment\n• Deportation\n• Travel bans\n\n🎯 **Cultural Tip**: ${userContext.destination === 'UAE' ? 'Respect Islamic customs, especially during Ramadan' : 'Direct communication valued, tipping expected everywhere'}\n\n🟢 Source: ${kb.legal_cultural.source}`;
-    } else if (query.includes('scam') || query.includes('fraud') || query.includes('cheat')) {
-      response = `🚨 **Common Scams & How to Avoid Them**\n\n**At Airport:**\n• Fake visa helpers (use only official counters)\n• Overpriced currency exchange (use ATMs)\n• Unlicensed taxis (use official taxi stands)\n\n**In City:**\n• Accommodation bait-and-switch (book verified hotels)\n• Fake tour operators (use licensed companies)\n• Inflated prices for foreigners (research normal prices)\n\n**Online:**\n• Fake apartment listings (never pay before viewing)\n• Phishing emails (verify sender)\n\n🛡️ **Protection Tips:**\n✅ Research typical prices beforehand\n✅ Use official services only\n✅ Keep emergency contacts handy\n✅ Trust your instincts\n\n🟢 Confidence: High`;
-    } else if (query.includes('timeline') || query.includes('schedule') || query.includes('when')) {
-      const timeline = checklist.flatMap(cat => cat.items)
-        .sort((a, b) => {
-          const priorityOrder = { 'critical': 1, 'high': 2, 'medium': 3, 'low': 4 };
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
+  
+  const toggleChecklistItem = (itemId: string | number): void => {
+    const key = String(itemId);
+    setChecklist(prevChecklist => 
+      prevChecklist.map(category => ({
+        ...category,
+        items: category.items.map(item => {
+          if (item.id === key) {
+            const newChecked = !item.checked;
+            if (newChecked) {
+              addNotification(`✅ Completed: ${item.title}`, "success");
+            }
+            return { ...item, checked: newChecked };
+          }
+          return item;
         })
-        .slice(0, 5);
-      
-      response = `📅 **Your Priority Timeline**\n\n**Critical Items (Do First):**\n${timeline.map((item, i) => `${i + 1}. ${item.title}\n   ⏰ ${item.deadline}\n   ⏱️ Time needed: ${item.estimatedTime}`).join('\n\n')}\n\n💡 Focus on critical items first. I'll remind you of upcoming deadlines!`;
-    } else if (query.includes('document') || query.includes('paper')) {
-      response = `📄 **Essential Documents Checklist**\n\n**Must Have:**\n✅ Passport (6+ months valid)\n✅ Visa (if required)\n✅ Return ticket\n✅ Travel insurance\n✅ Accommodation booking\n✅ Yellow fever certificate\n\n**Recommended:**\n✅ Digital copies in cloud\n✅ Emergency contacts\n✅ Bank statements\n✅ Prescription letters\n✅ International driving permit (if driving)\n\n💾 **Pro Tip**: Email all documents to yourself and save in Google Drive/Dropbox`;
-    } else {
-      response = `I can provide detailed, verified information about:\n\n💵 Budget & Costs\n🛡️ Safety & Risk Assessment\n✈️ Airport & Arrival Procedures\n🚗 Transportation Options\n💊 Medication Guidelines\n⚖️ Legal & Cultural Norms\n🚨 Scam Prevention\n📅 Timeline & Deadlines\n📄 Document Requirements\n\nWhat would you like to know more about? Ask specific questions for best results!`;
-    }
+      }))
+    );
+  };
 
-    const aiMsg = {
-      role: 'assistant',
-      content: response,
+  const toggleExpand = (itemId: string | number): void => {
+    const key = String(itemId);
+    setExpandedItems(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  const handleSendMessage = async (): Promise<void> => {
+    if (!inputMessage.trim()) return;
+
+    const userMsg: ChatMessage = {
+      role: 'user',
+      content: inputMessage,
       timestamp: new Date()
     };
 
-    setChatMessages(prev => [...prev, aiMsg]);
-    setLoading(false);
-  };
+    setChatMessages(prev => [...prev, userMsg]);
+    setInputMessage('');
+    setLoading(true);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    await new Promise(resolve => setTimeout(resolve, 1200));
 
-  const completedCount = checklist.reduce((acc, cat) => 
-    acc + cat.items.filter(item => item.checked).length, 0
-  );
-  const totalCount = checklist.reduce((acc, cat) => acc + cat.items.length, 0);
-  const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    if (!userContext.destination) {
+      addNotification("Select a destination first", "warning");
+      setLoading(false);
+      return;
+    }
 
-  const filteredChecklist = selectedCategory === 'all' 
-    ? checklist 
-    : checklist.filter(cat => cat.priority === selectedCategory);
+    const kb = knowledgeBase[userContext.destination];
+    let response = "";
+
+    const query = inputMessage.toLowerCase();
 
   const exportPDF = () => {
     addNotification("PDF export feature coming soon!", "info");
@@ -1309,108 +1453,111 @@ const RelocateAI = () => {
                         </div>
 
                         <div className="space-y-3">
-                          {category.items.map(item => (
-                            <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-all">
-                              <div className="flex items-start">
-                                <button
-                                  onClick={() => toggleChecklistItem(item.id)}
-                                  className="mt-1 mr-4 flex-shrink-0"
-                                >
-                                  {item.checked ? (
-                                    <CheckCircle2 className="w-6 h-6 text-green-600" />
-                                  ) : (
-                                    <Circle className="w-6 h-6 text-gray-400 hover:text-blue-500" />
-                                  )}
-                                </button>
-                                
-                                <div className="flex-1">
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1">
-                                      <span className={`font-semibold text-base ${item.checked ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                                        {item.title}
-                                      </span>
-                                      {item.priority === 'critical' && !item.checked && (
-                                        <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded">
-                                          CRITICAL
-                                        </span>
-                                      )}
-                                    </div>
-                                    <button
-                                      onClick={() => toggleExpand(item.id)}
-                                      className="ml-3 text-blue-600 hover:text-blue-700 flex-shrink-0"
-                                    >
-                                      {expandedItems[item.id] ? (
-                                        <ChevronUp className="w-6 h-6" />
-                                      ) : (
-                                        <ChevronDown className="w-6 h-6" />
-                                      )}
-                                    </button>
-                                  </div>
+                          {category.items.map(item => {
+                            const isExpanded = expandedItems[String(item.id)];
+                            return (
+                              <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-all">
+                                <div className="flex items-start">
+                                  <button
+                                    onClick={() => toggleChecklistItem(item.id)}
+                                    className="mt-1 mr-4 flex-shrink-0"
+                                  >
+                                    {item.checked ? (
+                                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                                    ) : (
+                                      <Circle className="w-6 h-6 text-gray-400 hover:text-blue-500" />
+                                    )}
+                                  </button>
                                   
-                                  {!expandedItems[item.id] && (
-                                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                      <span className="flex items-center">
-                                        <Calendar className="w-4 h-4 mr-1" />
-                                        {item.deadline}
-                                      </span>
-                                      <span className="flex items-center">
-                                        <Clock className="w-4 h-4 mr-1" />
-                                        {item.estimatedTime}
-                                      </span>
-                                      {item.cost && (
-                                        <span className="flex items-center">
-                                          <DollarSign className="w-4 h-4 mr-1" />
-                                          {item.cost}
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between mb-2">
+                                      <div className="flex-1">
+                                        <span className={`font-semibold text-base ${item.checked ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                                          {item.title}
                                         </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  
-                                  {expandedItems[item.id] && (
-                                    <div className="mt-4 space-y-3">
-                                      <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                                        <div className="font-semibold text-blue-900 mb-2 flex items-center">
-                                          <Info className="w-4 h-4 mr-2" />
-                                          Details
-                                        </div>
-                                        <div className="text-sm text-blue-800">{item.detail}</div>
-                                      </div>
-                                      
-                                      <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
-                                        <div className="font-semibold text-red-900 mb-2 flex items-center">
-                                          <AlertTriangle className="w-4 h-4 mr-2" />
-                                          Risk if Ignored
-                                        </div>
-                                        <div className="text-sm text-red-800">{item.risk}</div>
-                                      </div>
-
-                                      <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <div className="text-xs text-gray-600 mb-1">Deadline</div>
-                                          <div className="font-semibold text-gray-900 text-sm">{item.deadline}</div>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-lg">
-                                          <div className="text-xs text-gray-600 mb-1">Time Needed</div>
-                                          <div className="font-semibold text-gray-900 text-sm">{item.estimatedTime}</div>
-                                        </div>
-                                        {item.cost && (
-                                          <div className="bg-gray-50 p-3 rounded-lg col-span-2">
-                                            <div className="text-xs text-gray-600 mb-1">Estimated Cost</div>
-                                            <div className="font-semibold text-gray-900 text-sm">{item.cost}</div>
-                                          </div>
+                                        {item.priority === 'critical' && !item.checked && (
+                                          <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded">
+                                            CRITICAL
+                                          </span>
                                         )}
                                       </div>
-                                      
-                                      <div className="text-xs text-gray-500 flex items-center">
-                                        <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
-                                        Source: {item.source}
-                                      </div>
+                                      <button
+                                        onClick={() => toggleExpand(item.id)}
+                                        className="ml-3 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                                      >
+                                        {isExpanded ? (
+                                          <ChevronUp className="w-6 h-6" />
+                                        ) : (
+                                          <ChevronDown className="w-6 h-6" />
+                                        )}
+                                      </button>
                                     </div>
-                                  )}
+                                    
+                                    {!isExpanded && (
+                                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                        <span className="flex items-center">
+                                          <Calendar className="w-4 h-4 mr-1" />
+                                          {item.deadline}
+                                        </span>
+                                        <span className="flex items-center">
+                                          <Clock className="w-4 h-4 mr-1" />
+                                          {item.estimatedTime}
+                                        </span>
+                                        {item.cost && (
+                                          <span className="flex items-center">
+                                            <DollarSign className="w-4 h-4 mr-1" />
+                                            {item.cost}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {isExpanded && (
+                                      <div className="mt-4 space-y-3">
+                                        <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                          <div className="font-semibold text-blue-900 mb-2 flex items-center">
+                                            <Info className="w-4 h-4 mr-2" />
+                                            Details
+                                          </div>
+                                          <div className="text-sm text-blue-800">{item.detail}</div>
+                                        </div>
+                                        
+                                        <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                                          <div className="font-semibold text-red-900 mb-2 flex items-center">
+                                            <AlertTriangle className="w-4 h-4 mr-2" />
+                                            Risk if Ignored
+                                          </div>
+                                          <div className="text-sm text-red-800">{item.risk}</div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                          <div className="bg-gray-50 p-3 rounded-lg">
+                                            <div className="text-xs text-gray-600 mb-1">Deadline</div>
+                                            <div className="font-semibold text-gray-900 text-sm">{item.deadline}</div>
+                                          </div>
+                                          <div className="bg-gray-50 p-3 rounded-lg">
+                                            <div className="text-xs text-gray-600 mb-1">Time Needed</div>
+                                            <div className="font-semibold text-gray-900 text-sm">{item.estimatedTime}</div>
+                                          </div>
+                                          {item.cost && (
+                                            <div className="bg-gray-50 p-3 rounded-lg col-span-2">
+                                              <div className="text-xs text-gray-600 mb-1">Estimated Cost</div>
+                                              <div className="font-semibold text-gray-900 text-sm">{item.cost}</div>
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="text-xs text-gray-500 flex items-center">
+                                          <CheckCircle2 className="w-3 h-3 mr-1 text-green-600" />
+                                          Source: {item.source}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     );
