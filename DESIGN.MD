@@ -307,7 +307,37 @@ This design aligns with hackathon judging by demonstrating:
 
 ---
 
-## 15. LLM Coding & Behavior Specification
+## 15. Agent Prototype (Experimental)
+
+**Purpose:** Add a small, opt-in, experimental agent prototype to demonstrate how an autonomous assistant might help with tasks like summarization, search, and creating local todo items. This prototype is intentionally conservative and is designed to be non-destructive by default.
+
+**Key constraints & safety:**
+
+- **Opt-in only**: The agent is disabled by default. Enable via an explicit feature flag or env var (e.g., `AGENT_ENABLED=true`).
+- **Dry-run / Mock-first**: All actions are mockable. By default the agent runs in **dry-run** mode without external side effects.
+- **Human approval**: Any action that could be destructive or external (e.g., opening PRs, writing files, executing shell commands) requires explicit user approval in the UI.
+- **Rate limits & timeouts**: Agent loops use conservative rate limits and per-action timeouts to avoid runaway behavior.
+- **Audit logs**: All agent decisions, prompts, and action attempts are logged locally for review.
+- **No automatic external calls**: External APIs (LLM providers) must be configured explicitly. The prototype includes a **mock LLM** for development and tests.
+
+**Prototype features:**
+
+- Client-side agent loop that reads queued tasks and performs mock actions (e.g., `search`, `summarize`, `create-todo`, `noop`).
+- **Travel-specific actions (new)**: `search_flights`, `reserve_option`, `confirm_booking`, `book_accommodation`, `schedule_visa_appointment`; booking-related actions are approval-required and mock-first.
+- Simple `AgentDashboard` UI to start/stop the agent, queue tasks, and review logs. Approvals can be granted from the UI.
+- Configurable prompt templates and a toggle to switch between mock and real LLM providers. The prototype supports routing LLM calls through a local server proxy for safer key handling.
+- Persistent local logs stored in `localStorage` for the prototype.
+
+**Next steps for production:**
+
+1. Move the agent loop to a backend service with secure secrets management.
+2. Add robust authentication and user-level permissions.
+3. Add immutable, tamper-evident audit logs (e.g., append-only store).
+4. Implement fine-grained action policies and more thorough testing.
+
+---
+
+## 16. LLM Coding & Behavior Specification
 
 This section defines **exact instructions for the LLM (Grok)** to ensure consistent, grounded, and context-aware behavior across the application.
 
