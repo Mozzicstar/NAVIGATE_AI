@@ -10,7 +10,6 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "lucide-react": "^0.469.0",
-    "puppeteer": "^24.34.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-scripts": "5.0.1",

@@ -16,6 +16,7 @@ Safety notes:
 - Real LLM calls (Grok) can be proxied through the local API server — see env vars below.
 - Do **not** commit API keys or secrets to the repo.
 
+
 Env variables (development only):
 
 - `REACT_APP_AGENT_ENABLED=true` — enable the agent UI features (disabled by default)

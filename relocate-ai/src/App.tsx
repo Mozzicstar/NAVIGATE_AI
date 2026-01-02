@@ -14,7 +14,6 @@ import LandingPage from './components/LandingPage';
 import PurposeSelection from './components/PurposeSelection';
 import FormPage from './components/FormPage';
 import Dashboard from './components/Dashboard';
-import AgentDashboard from './components/AgentDashboard';
 
 const RelocateAI: React.FC = () => {
   const [step, setStep] = useState<Step>('landing');
@@ -174,6 +173,8 @@ const RelocateAI: React.FC = () => {
         items: cat.items.filter(item => item.priority === selectedCategory)
       })).filter(cat => cat.items.length > 0);
 
+
+
   // Render based on step
   if (step === 'landing') return <LandingPage onStart={() => setStep('purpose')} />;
   if (step === 'purpose') return <PurposeSelection onPurposeSelect={handlePurposeSelect} />;
@@ -216,10 +217,7 @@ const RelocateAI: React.FC = () => {
         onShareProgress={shareProgress}
       />
 
-      {/* Agent Dashboard (experimental) */}
-      <div style={{ maxWidth: 960, margin: '12px auto' }}>
-        <AgentDashboard />
-      </div>
+      {/* Agent features are now inline with checklist items. */}
     </>
   );
 

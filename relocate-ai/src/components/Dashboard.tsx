@@ -9,6 +9,7 @@ import type {
   UserContext, ActiveTab, SelectedCategory, Notification,
   ChecklistCategory, RiskScore, BudgetBreakdown, ChatMessage
 } from '../types';
+import AgentInline from './AgentInline';
 
 interface DashboardProps {
   userContext: UserContext;
@@ -466,6 +467,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                                       <h5 className="font-semibold text-gray-900 mb-1">Risks:</h5>
                                       <p className="text-sm text-red-700">{item.risk}</p>
                                     </div>
+
+                                    {/* Agent inline suggestion */}
+                                    <div style={{ marginTop: 12 }}>
+                                      <AgentInline item={item} userContext={userContext} />
+                                    </div>
+
                                   </div>
                                 )}
                               </div>
