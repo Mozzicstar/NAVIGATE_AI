@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
-import { Send, CheckCircle2, Circle, AlertTriangle, Info, Plane, MapPin, Calendar, Target, Home, ChevronDown, ChevronUp, Loader2, User, Briefcase, GraduationCap, Heart, Globe, DollarSign, Shield, Clock, FileText, Camera, Navigation, Train, Building2, Phone, Wifi, CreditCard, Hospital, Scale, Users, TrendingUp, Download, Share2, Bell, X, Menu, ChevronRight, Zap, Star, Award } from 'lucide-react';
+import { Send, CheckCircle2, Circle, AlertTriangle, Info, Plane, MapPin, Calendar, Target, Home, ChevronDown, ChevronUp, Loader2, User, Briefcase, GraduationCap, Heart, Globe, DollarSign, Shield, Clock, FileText, Camera, Navigation, Train, Building2, Phone, Wifi, CreditCard, Hospital, Scale, Users, TrendingUp, Download, Share2, Bell, X, Menu, ChevronRight, Zap, Star, Award, Mic, MicOff } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useSpeechRecognition } from 'react-speech-kit';
 
 import type {
   Purpose, Destination, Step, PriorityLevel, SelectedCategory, ActiveTab,
@@ -42,6 +43,13 @@ const RelocateAI: React.FC = () => {
   const [budgetBreakdown, setBudgetBreakdown] = useState<BudgetBreakdown | null>(null);
   const [riskScore, setRiskScore] = useState<RiskScore | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Voice recognition
+  const { listen, listening, stop } = useSpeechRecognition({
+    onResult: (result: any) => {
+      setInputMessage(result);
+    },
+  });
 
   // using centralized implementation from ./utils
 
@@ -152,6 +160,20 @@ const RelocateAI: React.FC = () => {
     let response = "";
 
     const query = inputMessage.toLowerCase();
+    try {
+      const prompt = `User: ${inputMessage}\nContext: ${JSON.stringify(userContext)}`;
+      const { agent } = await import('./agent/agent');
+      console.log('Chat using provider:', agent.state.provider);
+      const llmResp = await (await import('./agent/llm')).callLLM(prompt, agent.state.provider);
+      response = llmResp;
+    } catch (e) {
+      response = "Sorry, I couldn't process that right now.";
+    }
+
+    const assistantMsg: ChatMessage = { role: 'assistant', content: String(response), timestamp: new Date() };
+    setChatMessages(prev => [...prev, assistantMsg]);
+    setLoading(false);
+    return;
   };
 
   const exportPDF = () => {
@@ -215,6 +237,11 @@ const RelocateAI: React.FC = () => {
         filteredChecklist={filteredChecklist}
         onExportPDF={exportPDF}
         onShareProgress={shareProgress}
+        listening={listening}
+        onStartListening={() => listen({
+          lang: ''
+        })}
+        onStopListening={() => stop()}
       />
 
       {/* Agent features are now inline with checklist items. */}

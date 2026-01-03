@@ -3,13 +3,17 @@ import {
   Plane, Bell, Download, Share2, X, CheckCircle2, Info, AlertTriangle,
   TrendingUp, Send, Shield, DollarSign, Home, Users, Award,
   ChevronDown, ChevronUp, Circle, FileText, MapPin, Calendar, Target,
-  Home as HomeIcon, Clock, Star
+  Home as HomeIcon, Clock, Star, Mic, MicOff
 } from 'lucide-react';
 import type {
   UserContext, ActiveTab, SelectedCategory, Notification,
   ChecklistCategory, RiskScore, BudgetBreakdown, ChatMessage
 } from '../types';
 import AgentInline from './AgentInline';
+import CurrencyConverter from './CurrencyConverter';
+import WeatherWidget from './WeatherWidget';
+import AgentInlineHotel from './AgentInlineHotel';
+import ProgressChart from './ProgressChart';
 
 interface DashboardProps {
   userContext: UserContext;
@@ -37,6 +41,9 @@ interface DashboardProps {
   filteredChecklist: ChecklistCategory[];
   onExportPDF: () => void;
   onShareProgress: () => void;
+  listening: boolean;
+  onStartListening: () => void;
+  onStopListening: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -64,7 +71,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   progress,
   filteredChecklist,
   onExportPDF,
-  onShareProgress
+  onShareProgress,
+  listening,
+  onStartListening,
+  onStopListening
 }) => {
   const toggleChecklistItem = (itemId: string | number): void => {
     const key = String(itemId);
@@ -471,6 +481,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                                     {/* Agent inline suggestion */}
                                     <div style={{ marginTop: 12 }}>
                                       <AgentInline item={item} userContext={userContext} />
+                                      <AgentInlineHotel item={item} userContext={userContext} />
                                     </div>
 
                                   </div>
@@ -526,6 +537,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                     placeholder="Ask me anything about your relocation..."
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                  <button
+                    onClick={listening ? onStopListening : onStartListening}
+                    className={`px-4 py-3 ${listening ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'} text-white border-l border-gray-300`}
+                  >
+                    {listening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                  </button>
                   <button
                     onClick={onSendMessage}
                     disabled={loading}
@@ -584,6 +601,20 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </p>
               </div>
             </div>
+
+            {/* Currency Converter */}
+            <CurrencyConverter userContext={userContext} />
+
+            {/* Weather Widget */}
+            <WeatherWidget userContext={userContext} />
+
+            {/* Progress Chart */}
+            <ProgressChart
+              checklist={checklist}
+              totalCount={totalCount}
+              completedCount={completedCount}
+              progress={progress}
+            />
           </div>
         </div>
       </div>

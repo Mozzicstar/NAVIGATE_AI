@@ -2,7 +2,7 @@
 // - Supports `mock` provider
 // - Supports `grok` provider if explicitly allowed via env (REACT_APP_AGENT_ALLOW_REAL=true)
 
-export type Provider = 'mock' | 'grok';
+export type Provider = 'mock' | 'groq';
 
 export async function callLLM(prompt: string, provider: Provider = 'mock'): Promise<string> {
   // Optionally route through a server-side proxy when configured (safer for keys)
@@ -10,6 +10,7 @@ export async function callLLM(prompt: string, provider: Provider = 'mock'): Prom
   const proxyUrl = process.env.REACT_APP_LLM_PROXY_URL;
   if (useProxy && proxyUrl) {
     try {
+      console.log(`[LLM Client] Calling proxy at ${proxyUrl} with provider '${provider}'`);
       const resp = await fetch(`${proxyUrl.replace(/\/$/, '')}/llm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -17,12 +18,16 @@ export async function callLLM(prompt: string, provider: Provider = 'mock'): Prom
       });
       if (resp.ok) {
         const json = await resp.json();
+        console.log(`[LLM Client] Proxy returned output:`, json.output?.slice(0, 100));
         return json.output || JSON.stringify(json);
       }
-      console.warn('LLM proxy returned non-ok status, falling back to local provider');
+      console.warn(`[LLM Client] Proxy returned non-ok status ${resp.status}, falling back to local provider`);
     } catch (e) {
-      console.warn('LLM proxy call failed, falling back to local provider', e);
+      console.error(`[LLM Client] Proxy call failed for ${proxyUrl}:`, e);
+      console.warn(`[LLM Client] Falling back to local provider due to proxy error`);
     }
+  } else {
+    console.log(`[LLM Client] Proxy disabled. useProxy=${useProxy}, proxyUrl=${proxyUrl}`);
   }
 
   if (provider === 'mock') {
@@ -33,21 +38,21 @@ export async function callLLM(prompt: string, provider: Provider = 'mock'): Prom
 
   // Provider is 'grok'
   const allowReal = process.env.REACT_APP_AGENT_ALLOW_REAL === 'true';
-  const key = process.env.REACT_APP_GROK_API_KEY;
-  const url = process.env.REACT_APP_GROK_API_URL || 'https://api.grok.ai/v1/generate';
+  const key = process.env.REACT_APP_GROQ_API_KEY;
+  const url = process.env.REACT_APP_GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
 
   if (!allowReal || !key) {
     // Always fallback to mock if real calls aren't explicitly allowed
-    console.warn('Real LLM calls are not allowed — falling back to mock. Set REACT_APP_AGENT_ALLOW_REAL=true and provide REACT_APP_GROK_API_KEY to enable.');
+    console.warn('Real LLM calls are not allowed — falling back to mock. Set REACT_APP_AGENT_ALLOW_REAL=true and provide REACT_APP_GROQ_API_KEY to enable.');
     await new Promise(r => setTimeout(r, 300));
     return `MOCK_LLM (fallback): brief summary of '${prompt.slice(0, 120)}'`;
   }
 
   try {
     const body = {
-      // Minimal, generic request shape. You may need to customize based on your Grok provider.
-      prompt,
-      max_tokens: 256,
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 512,
       temperature: 0.2,
     } as any;
 

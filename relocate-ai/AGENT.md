@@ -17,13 +17,11 @@ Safety notes:
 - Do **not** commit API keys or secrets to the repo.
 
 
-Env variables (development only):
-
 - `REACT_APP_AGENT_ENABLED=true` — enable the agent UI features (disabled by default)
-- `REACT_APP_AGENT_PROVIDER=grok` — default provider (optional)
+- `REACT_APP_AGENT_PROVIDER=groq` — default provider (optional)
 - `REACT_APP_AGENT_ALLOW_REAL=true` — **required** to allow real LLM calls from the browser (use with extreme caution)
-- `REACT_APP_GROK_API_KEY=...` — your Grok API key (only used if `REACT_APP_AGENT_ALLOW_REAL=true`)
-- `REACT_APP_GROK_API_URL` — optional custom Grok endpoint (default: `https://api.grok.ai/v1/generate`)
+- `REACT_APP_GROQ_API_KEY=...` — your Groq API key (only used if `REACT_APP_AGENT_ALLOW_REAL=true`)
+- `REACT_APP_GROQ_API_URL` — optional custom Groq endpoint (default: `https://api.groq.ai/v1/generate`)
 - `REACT_APP_AGENT_USE_PROXY=true` — route LLM calls to a local proxy server (recommended)
 - `REACT_APP_LLM_PROXY_URL=http://localhost:4010` — URL for the proxy server
 

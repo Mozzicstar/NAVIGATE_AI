@@ -21,22 +21,15 @@ describe('AgentInline', () => {
     render(<AgentInline item={item} userContext={ctx} />);
 
     // suggestion should be visible
-    expect(screen.getByText(/Agent suggestion/i)).toBeInTheDocument();
+    expect(screen.getByText(/Agent:/i)).toBeInTheDocument();
 
-    // click Ask agent
-    fireEvent.click(screen.getByText(/Ask agent/i));
+    // start the quick action
+    fireEvent.click(screen.getByText(/Yes, do it/i));
 
-    // Wait for modal title to appear
-    await waitFor(() => expect(screen.getByText(/Agent:/i)).toBeInTheDocument());
+    // confirm (form appears, then confirm)
+    fireEvent.click(screen.getByText(/Confirm/i));
 
-    // Confirm queue
-    fireEvent.click(screen.getByText(/Queue suggestion/i));
-
-    // Wait for queue to be added to agent state
-    await waitFor(() => {
-      const raw = localStorage.getItem('relocate_ai_agent_state_v1') || '{}';
-      const st = JSON.parse(raw);
-      expect(st.queue.length).toBeGreaterThan(0);
-    });
+    // Wait for booking confirmation to appear (allow a few seconds for mock flow)
+    await screen.findByText(/Flight booked — confirmation/i, {}, { timeout: 5000 });
   });
 });

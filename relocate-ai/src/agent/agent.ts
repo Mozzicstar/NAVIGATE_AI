@@ -12,12 +12,18 @@ const STORAGE_KEY = 'relocate_ai_agent_state_v1';
 function nowIso() { return new Date().toISOString(); }
 
 function loadState(): AgentState {
+  const defaultProvider = process.env.REACT_APP_AGENT_PROVIDER === 'groq' ? 'groq' : 'mock';
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { running: false, queue: [], logs: [], provider: process.env.REACT_APP_AGENT_PROVIDER === 'grok' ? 'grok' : 'mock' };
-    return JSON.parse(raw) as AgentState;
+    if (!raw) return { running: false, queue: [], logs: [], provider: defaultProvider };
+    const state = JSON.parse(raw) as AgentState;
+    // If env explicitly says groq, and we are on mock, upgrade it
+    if (process.env.REACT_APP_AGENT_PROVIDER === 'groq' && state.provider === 'mock') {
+      state.provider = 'groq';
+    }
+    return state;
   } catch (e) {
-    return { running: false, queue: [], logs: [], provider: process.env.REACT_APP_AGENT_PROVIDER === 'grok' ? 'grok' : 'mock' };
+    return { running: false, queue: [], logs: [], provider: defaultProvider };
   }
 }
 
@@ -35,7 +41,7 @@ export class Agent {
     this.state = loadState();
   }
 
-  setProvider(p: 'mock'|'grok') {
+  setProvider(p: 'mock'|'groq') {
     this.state.provider = p;
     this.log({ level: 'info', message: `Provider set to ${p}` });
     saveState(this.state);
@@ -69,6 +75,21 @@ export class Agent {
     saveState(this.state);
     this.notify();
     return task;
+  }
+
+  // execute a task immediately (bypass queue). useful for inline quick actions.
+  async runNow(action: AgentActionName, input: string, dryRun = false) {
+    const tempId = uuidv4();
+    this.log({ level: 'info', message: `Running now ${tempId} (${action})`, taskId: tempId });
+    const task = { id: tempId, action, input, createdAt: nowIso(), approved: true, dryRun } as any;
+    try {
+      const result = await this.executeTask(task);
+      this.log({ level: 'info', message: `Immediate result: ${tempId} -> ${result}`, taskId: tempId });
+      return result;
+    } catch (e: any) {
+      this.log({ level: 'error', message: `Immediate task failed: ${String(e)}`, taskId: tempId });
+      throw e;
+    }
   }
 
   approveTask(taskId: string) {
@@ -111,7 +132,7 @@ export class Agent {
 
   private async executeTask(task: AgentTask) {
     // call LLM via client. fallback to mock if provider isn't configured or allowed
-    const provider = this.state.provider || (process.env.REACT_APP_AGENT_PROVIDER === 'grok' ? 'grok' : 'mock');
+    const provider = this.state.provider || (process.env.REACT_APP_AGENT_PROVIDER === 'groq' ? 'groq' : 'mock');
     const llm = await callLLM(`Perform ${task.action} on: ${task.input}`, provider as any);
 
     // Respect dryRun: only return descriptive output
@@ -145,6 +166,19 @@ export class Agent {
         if (dryRun) return `DRY-RUN: would confirm & charge for booking ${input}`;
         const bookingId = `bk-${Math.random().toString(36).slice(2,8)}`;
         return `BOOKING_CONFIRMED:${JSON.stringify({ bookingId, reservation: input })}`;
+      }
+      case 'book_accommodation': {
+        // input expected as JSON string { destination, checkIn, checkOut, guests?, budget?, preferences? }
+        let q: any = { raw: input };
+        try { q = JSON.parse(input); } catch (e) { /* keep raw */ }
+        if (dryRun) return `DRY-RUN: would search hotels for ${JSON.stringify(q)}`;
+        const mockHotels = [
+          { id: 'hotel-1', name: 'Grand Plaza Hotel', price: '$120/night', rating: 4.5, amenities: ['WiFi', 'Pool', 'Gym'] },
+          { id: 'hotel-2', name: 'City Center Inn', price: '$85/night', rating: 4.2, amenities: ['WiFi', 'Breakfast'] },
+          { id: 'hotel-3', name: 'Luxury Suites', price: '$200/night', rating: 4.8, amenities: ['WiFi', 'Pool', 'Spa', 'Restaurant'] }
+        ];
+        const bookingId = `acc-${Math.random().toString(36).slice(2,8)}`;
+        return `ACCOMMODATION_BOOKED:${JSON.stringify({ bookingId, query: q, options: mockHotels, selected: mockHotels[0] })}`;
       }
       case 'summarize':
         return `summary: ${llmOutput}`;

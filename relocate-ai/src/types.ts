@@ -165,5 +165,5 @@ export type AgentState = {
   lastRunAt?: string;
   queue: AgentTask[];
   logs: AgentLog[];
-  provider?: 'mock' | 'grok';
+  provider?: 'mock' | 'groq';
 };

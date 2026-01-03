@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { agent } from '../agent/agent';
 import type { AgentTask, AgentLog, AgentActionName } from '../types';
 
-const actionOptions: AgentActionName[] = ['search', 'search_flights', 'summarize', 'create-todo', 'noop'];
+const actionOptions: AgentActionName[] = ['search', 'search_flights', 'book_accommodation', 'summarize', 'create-todo', 'noop'];
 
 const AgentDashboard: React.FC = () => {
   const [state, setState] = useState(agent.getState());
@@ -21,8 +21,8 @@ const AgentDashboard: React.FC = () => {
   const enabledEnv = (process.env.REACT_APP_AGENT_ENABLED === 'true');
   const enabled = enabledEnv || enabledOverride;
 
-  const [provider, setProvider] = useState<'mock'|'grok'>(state.provider || (process.env.REACT_APP_AGENT_PROVIDER === 'grok' ? 'grok' : 'mock'));
-  const realAllowed = (process.env.REACT_APP_AGENT_ALLOW_REAL === 'true') && !!process.env.REACT_APP_GROK_API_KEY;
+  const [provider, setProvider] = useState<'mock'|'groq'>(state.provider || (process.env.REACT_APP_AGENT_PROVIDER === 'groq' ? 'groq' : 'mock'));
+  const realAllowed = (process.env.REACT_APP_AGENT_ALLOW_REAL === 'true') && !!process.env.REACT_APP_GROQ_API_KEY;
 
   // small UI message for validations and feedback
   const [message, setMessage] = useState('');
@@ -66,7 +66,7 @@ const AgentDashboard: React.FC = () => {
           Provider
           <select value={provider} onChange={e => { const p = e.target.value as any; setProvider(p); agent.setProvider(p); }} style={{ marginLeft: 6 }}>
             <option value="mock">mock</option>
-            <option value="grok">grok</option>
+            <option value="groq">groq</option>
           </select>
         </label>
 
@@ -81,7 +81,7 @@ const AgentDashboard: React.FC = () => {
       {message && <div style={{ marginTop: 8, padding: 8, background: '#fff8e1', border: '1px solid #f2dba6', borderRadius: 6 }}>{message}</div>}
 
       {!enabled && <div style={{ marginTop: 8, color: '#b33' }}>Agent is disabled. Use the <strong>Enable agent (dev override)</strong> toggle above or set <code>REACT_APP_AGENT_ENABLED=true</code> in your environment.</div>}
-      {provider === 'grok' && !realAllowed && <div style={{ marginTop: 8, color: '#b33' }}>Grok provider selected but not enabled. Set <code>REACT_APP_AGENT_ALLOW_REAL=true</code> and <code>REACT_APP_GROK_API_KEY</code> to allow real LLM calls (local dev only).</div>}
+      {provider === 'groq' && !realAllowed && <div style={{ marginTop: 8, color: '#b33' }}>Groq provider selected but not enabled. Set <code>REACT_APP_AGENT_ALLOW_REAL=true</code> and <code>REACT_APP_GROQ_API_KEY</code> to allow real LLM calls (local dev only).</div>}
 
       <hr style={{ margin: '12px 0' }} />
 
