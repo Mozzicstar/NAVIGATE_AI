@@ -1,0 +1,42 @@
+DEPLOYMENT GUIDE: Navigate AI on Vercel
+
+This project is configured for a "monorepo" style deployment on Vercel, where the React frontend and the Node.js serverless API live in the same repository.
+
+1. PREPARATION
+   - Ensure you have a GitHub account and a Vercel account.
+   - Push your latest code (including the new `api/*.js` files) to your GitHub repository.
+
+2. DEPLOYMENT STEPS
+   a. Go to https://vercel.com/new
+   b. Import your "NAVIGATE_AI" repository.
+   c. Vercel should automatically detect the configuration from `vercel.json`.
+      - Framework Preset: Create React App (or Other) is fine.
+      - Root Directory: ./ (Leave as default)
+      - Build Command: (Default is fine, handled by vercel.json)
+      - Output Directory: (Default is fine, handled by vercel.json)
+
+3. ENVIRONMENT VARIABLES
+   In the "Environment Variables" section of the deployment screen (or later in Settings), add the following:
+
+   Key: GROQ_API_KEY
+   Value: <your_groq_api_key>
+   (If you don't have one, the API will use the simulated fallback mode automatically.)
+
+   Key: GROQ_API_URL
+   Value: https://api.groq.com/openai/v1/chat/completions
+   (Optional, defaults to this value if omitted)
+
+4. FINALIZE
+   - Click "Deploy".
+   - Vercel will build the React app and deploy the functions in `api/` as serverless endpoints.
+
+5. VERIFICATION
+   Once deployed, open your Vercel URL (e.g., https://navigate-ai.vercel.app).
+   - The frontend should load.
+   - Test the API by asking "visa from Lagos to USA" in the chat.
+   - If it works, the frontend successfully communicated with `/api/llm`.
+
+TROUBLESHOOTING
+- If the chat fails, check the "Logs" tab in your Vercel dashboard.
+- Look for errors in the "Functions" logs for `api/llm`.
+- Ensure `REACT_APP_LLM_PROXY_URL` was correctly set to `/api` in the code (I have already done this for you in `.env`).
