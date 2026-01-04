@@ -16,15 +16,19 @@ This project is configured for a "monorepo" style deployment on Vercel, where th
       - Output Directory: (Default is fine, handled by vercel.json)
 
 3. ENVIRONMENT VARIABLES
-   In the "Environment Variables" section of the deployment screen (or later in Settings), add the following:
+   In the "Environment Variables" section of the deployment screen (or later in Settings), add the following.
+   These are required for the frontend to talk to the backend correctly.
 
-   Key: GROQ_API_KEY
-   Value: <your_groq_api_key>
-   (If you don't have one, the API will use the simulated fallback mode automatically.)
+   | Key | Value | Description |
+   | :--- | :--- | :--- |
+   | GROQ_API_KEY | <your_groq_api_key> | Required for real AI responses. |
+   | REACT_APP_AGENT_USE_PROXY | true | Tells frontend to use the serverless API. |
+   | REACT_APP_LLM_PROXY_URL | /api | Points frontend to the Vercel functions. |
+   | REACT_APP_AGENT_PROVIDER | groq | Sets default provider to Groq. |
+   | REACT_APP_AGENT_ALLOW_REAL | true | Enables real API calls. |
+   | GROQ_API_URL | https://api.groq.com/openai/v1/chat/completions | (Optional) API endpoint override. |
 
-   Key: GROQ_API_URL
-   Value: https://api.groq.com/openai/v1/chat/completions
-   (Optional, defaults to this value if omitted)
+   Note: You do NOT need to set REACT_APP_GROQ_API_KEY if using the proxy (recommended).
 
 4. FINALIZE
    - Click "Deploy".
